@@ -61,7 +61,7 @@ app.post("/login", async (req, resp, next) => {
 
   if (user && !user?.deleted) {
     const token = jwt.sign({ username: user.username }, SECRET_KEY, {
-      expiresIn: "1m",
+      expiresIn: "1h",
     });
     if (userInfo?._id) {
       resp.send({ user, token });
@@ -93,6 +93,19 @@ app.put("/update/:_id", verifyToken, async (req, resp) => {
   const user = await Users.updateOne(req.params, { $set: req.body });
   if (user) {
     resp.send("User Updated Successfully...!!");
+  } else {
+    try {
+      throw Error("User not fount");
+    } catch (error) {
+      return resp.status(400).send("User not fount");
+    }
+  }
+});
+
+app.put("/resetPassword/:_id", async (req, resp) => {
+  const user = await Users.updateOne(req.params, { $set: req.body });
+  if (user) {
+    resp.send("Reset Password Successfully...!!");
   } else {
     try {
       throw Error("User not fount");
