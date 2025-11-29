@@ -1,8 +1,17 @@
-const mongoose = require('mongoose'); 
+const mongoose = require("mongoose");
 
-const quoitSchema = new mongoose.Schema({
-    quote: String,
-    by: String
-}, {timestamps: true});
+const quoitSchema = new mongoose.Schema(
+  {
+    quote: {
+      type: String,
+      required: true,
+    },
+    by: {
+      type: String,
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('quotes', quoitSchema);
+module.exports = mongoose.model("quotes", quoitSchema);
