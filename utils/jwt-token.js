@@ -1,9 +1,6 @@
 const jwt = require("jsonwebtoken");
 const SECRET_KEY = "BALUKHARADE";
 
-
-
-
 const verifyToken = (req, res, next) => {
   const token = req.headers["authorization"];
 
@@ -20,4 +17,11 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-module.exports = { verifyToken }
+const getJwtToken = () => {
+    const token = jwt.sign({ username: user.username }, SECRET_KEY, {
+      expiresIn: "1h",
+    });
+    return token
+}
+
+module.exports = { verifyToken, getJwtToken }

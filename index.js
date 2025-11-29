@@ -1,14 +1,11 @@
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const Users = require("./db/Users");
-const { verifyToken } = require("./utils");
+const { verifyToken, getJwtToken } = require("./utils/jwt-token");
 const { mainRoute } = require("./routes");
 require("dotenv").config();
-
 require("./db/config");
 
-const SECRET_KEY = "BALUKHARADE";
 const app = express();
 
 app.use(
@@ -31,14 +28,11 @@ app.post("/login", async (req, resp, next) => {
   const user = await Users.findOne(req.body);
 
   if (user && !user?.deleted) {
-    const token = jwt.sign({ username: user.username }, SECRET_KEY, {
-      expiresIn: "1h",
-    });
     if (userInfo?._id) {
-      resp.send({ user, token });
+      resp.send({ user, getJwtToken });
     } else {
       userInfo = user;
-      resp.send({ user, token });
+      resp.send({ user, getJwtToken });
     }
   } else {
     try {

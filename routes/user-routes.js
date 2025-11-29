@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const Users = require("../db/Users");
 const Quote = require("../db/Quote");
-const { verifyToken } = require("../utils");
+const { verifyToken } = require("../utils/jwt-token");
 const { userRegisterValidation } = require("../utils/validation");
 
 const router = Router();
