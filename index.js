@@ -29,10 +29,10 @@ app.post("/login", async (req, resp, next) => {
 
   if (user && !user?.deleted) {
     if (userInfo?._id) {
-      resp.send({ user, getJwtToken });
+      resp.send({ user, token: getJwtToken(user) });
     } else {
       userInfo = user;
-      resp.send({ user, getJwtToken });
+      resp.send({ user, token: getJwtToken(user) });
     }
   } else {
     try {

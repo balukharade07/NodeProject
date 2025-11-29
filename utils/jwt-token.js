@@ -17,7 +17,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-const getJwtToken = () => {
+const getJwtToken = (user) => {
     const token = jwt.sign({ username: user.username }, SECRET_KEY, {
       expiresIn: "1h",
     });
