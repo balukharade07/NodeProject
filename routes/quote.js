@@ -2,15 +2,26 @@ const { Router } = require("express");
 const Quote = require("../db/Quote");
 const Users = require("../db/Users");
 const { verifyExpressToken } = require("../utils/jwt-token");
+const { addQuoteValidation, handleValidation } = require("../utils/validation");
 // const { verifyToken } = require("../utils/jwt-token");
 
 const router = Router();
 
-router.post("/addQuote", verifyExpressToken, async (req, resp) => {
-  const addQuote = new Quote(req.body);
-  const res = await addQuote.save();
-  resp.status(201).send(res);
-});
+router.post(
+  "/addQuote",
+  verifyExpressToken,
+  addQuoteValidation,
+  handleValidation,
+  async (req, resp) => {
+    try {
+      const addQuote = new Quote(req.body);
+      const res = await addQuote.save();
+      resp.status(201).send(res);
+    } catch (error) {
+      resp.status(400).send("BAD REQ.");
+    }
+  }
+);
 
 router.put("/editQuote/:_id", verifyExpressToken, async (req, resp) => {
   const data = await Quote.findOne(req.body);
@@ -22,7 +33,7 @@ router.put("/editQuote/:_id", verifyExpressToken, async (req, resp) => {
     }
   } else {
     const quote = await Quote.updateOne(req.params, { $set: req.body });
-    resp.status(200).send(req.body);
+    resp.status(200).send(quote);
   }
 });
 
@@ -72,13 +83,21 @@ router.get("/getAllQuote/:_id", async (req, resp) => {
 });
 
 router.get("/getQuote/:by", verifyExpressToken, async (req, resp) => {
-  const addQuote = await Quote.find(req.params);
-  resp.status(200).send(addQuote);
+  try {
+    const addQuote = await Quote.find(req.params);
+    resp.status(200).send(addQuote);
+  } catch (error) {
+    resp.status(400).send("BAD REQ.");
+  }
 });
 
 router.delete("/delete/:_id", verifyExpressToken, async (req, resp) => {
-  const addQuote = await Quote.deleteOne(req.params);
-  resp.status(200).send(addQuote);
+  try {
+    const addQuote = await Quote.deleteOne(req.params);
+    resp.status(200).send(addQuote);
+  } catch (error) {
+    resp.status(400).send("BAD REQ.");
+  }
 });
 
 module.exports = { quoteRouter: router };

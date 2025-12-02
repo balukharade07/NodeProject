@@ -10,6 +10,8 @@ const { mainRoute } = require("./routes");
 const session = require("express-session");
 require("dotenv").config();
 const connectDB = require("./db/config");
+const { loginValidation, handleValidation } = require("./utils/validation");
+const { validationResult } = require("express-validator");
 
 const app = express();
 
@@ -37,8 +39,9 @@ app.get("/isLoggendIn", verifyExpressToken, (req, resp, next) => {
   resp.send(userInfo);
 });
 
-app.post("/login", async (req, resp) => {
+app.post("/login", loginValidation, handleValidation, async (req, resp) => {
   const user = await Users.findOne(req.body);
+  console.log("req.body", req.body)
   if (!user || user.deleted) {
     return resp.status(400).send("BAD CREDENTIALS");
   }
