@@ -1,17 +1,22 @@
 const express = require("express");
 const cors = require("cors");
 const Users = require("./db/Users");
-const { verifyToken, getJwtToken } = require("./utils/jwt-token");
+const {
+  verifyToken,
+  getJwtToken,
+  verifyExpressToken,
+} = require("./utils/jwt-token");
 const { mainRoute } = require("./routes");
 const session = require("express-session");
 require("dotenv").config();
-require("./db/config");
+const connectDB = require("./db/config");
 
 const app = express();
 
 app.use(
   cors({
     origin: "http://localhost:3000",
+    credentials: true,
   })
 );
 
@@ -23,38 +28,40 @@ app.use(
     secret: "Sairaj",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true, maxAge: 60000 * 60 },
+    cookie: { secure: false, maxAge: 60000 * 60 },
   })
 );
 app.use(mainRoute);
 
-app.get("/isLoggendIn", verifyToken, (req, resp, next) => {
+app.get("/isLoggendIn", verifyExpressToken, (req, resp, next) => {
   resp.send(userInfo);
 });
 
-app.post("/login", async (req, resp, next) => {
+app.post("/login", async (req, resp) => {
   const user = await Users.findOne(req.body);
-  if (user && !user?.deleted) {
-    if (userInfo?._id) {
-      resp.send({ user, token: getJwtToken() });
-    } else {
-      userInfo = user;
-      resp.send({ user, token: getJwtToken() });
-    }
-  } else {
-    try {
-      throw new Error("User not fount");
-    } catch (err) {
-      return next(err);
-    }
+  if (!user || user.deleted) {
+    return resp.status(400).send("BAD CREDENTIALS");
   }
+
+  req.session.user = user;
+  req.session.save(() => {
+    resp.status(200).send({
+      user,
+      token: getJwtToken(user),
+    });
+  });
 });
 
-app.post("/logout", verifyToken, async (req, resp, next) => {
+app.post("/logout", verifyExpressToken, async (req, resp, next) => {
   userInfo = {};
-  resp.send("Logout Successfully...!!");
+  req.session.destroy((err) => {
+    if (err) res.status(400).send("Error!");
+    resp.status(200).send("Logout Successfully...!!");
+  });
 });
 
-app.listen(5000, () => {
-  console.log("Server is running on 5000");
+connectDB().then(() => {
+  app.listen(5000, () => {
+    console.log("Server is running on 5000");
+  });
 });
