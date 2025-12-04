@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const Quote = require("../db/Quote");
 const Users = require("../db/Users");
-const { verifyExpressToken } = require("../utils/jwt-token");
+const { verifyToken } = require("../utils/jwt-token");
 const { addQuoteValidation, handleValidation } = require("../utils/validation");
 // const { verifyToken } = require("../utils/jwt-token");
 
@@ -9,7 +9,7 @@ const router = Router();
 
 router.post(
   "/addQuote",
-  verifyExpressToken,
+  verifyToken,
   addQuoteValidation,
   handleValidation,
   async (req, resp) => {
@@ -23,7 +23,7 @@ router.post(
   }
 );
 
-router.put("/editQuote/:_id", verifyExpressToken, async (req, resp) => {
+router.put("/editQuote/:_id", verifyToken, async (req, resp) => {
   const data = await Quote.findOne(req.body);
   if (data) {
     try {
@@ -82,7 +82,7 @@ router.get("/getAllQuote/:_id", async (req, resp) => {
   }
 });
 
-router.get("/getQuote/:by", verifyExpressToken, async (req, resp) => {
+router.get("/getQuote/:by", verifyToken, async (req, resp) => {
   try {
     const addQuote = await Quote.find(req.params);
     resp.status(200).send(addQuote);
@@ -91,7 +91,7 @@ router.get("/getQuote/:by", verifyExpressToken, async (req, resp) => {
   }
 });
 
-router.delete("/delete/:_id", verifyExpressToken, async (req, resp) => {
+router.delete("/delete/:_id", verifyToken, async (req, resp) => {
   try {
     const addQuote = await Quote.deleteOne(req.params);
     resp.status(200).send(addQuote);

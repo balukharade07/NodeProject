@@ -1,17 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const Users = require("./db/Users");
-const {
-  verifyToken,
-  getJwtToken,
-  verifyExpressToken,
-} = require("./utils/jwt-token");
+const { verifyToken, getJwtToken } = require("./utils/jwt-token");
 const { mainRoute } = require("./routes");
 const session = require("express-session");
 require("dotenv").config();
 const connectDB = require("./db/config");
 const { loginValidation, handleValidation } = require("./utils/validation");
-const { validationResult } = require("express-validator");
+const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
@@ -23,7 +20,7 @@ app.use(
 );
 
 app.use(express.json());
-
+app.use(cookieParser());
 let userInfo = {};
 app.use(
   session({
@@ -35,32 +32,44 @@ app.use(
 );
 app.use(mainRoute);
 
-app.get("/isLoggendIn", verifyExpressToken, (req, resp, next) => {
+app.get("/isLoggendIn", verifyToken, (req, resp, next) => {
   resp.send(userInfo);
 });
 
 app.post("/login", loginValidation, handleValidation, async (req, resp) => {
-  const user = await Users.findOne(req.body);
-  console.log("req.body", req.body)
-  if (!user || user.deleted) {
-    return resp.status(400).send("BAD CREDENTIALS");
+  try {
+    const { email, password } = req.body;
+    const user = await Users.findOne({ email });
+    if (!user || user.deleted) {
+      return resp.status(400).send("INVALID CREDENTIALS");
+    }
+    const passwordHash = await bcrypt.compare(password, user.password);
+    if (passwordHash) {
+      // req.session.user = user;
+      const token = getJwtToken(user);
+      resp.cookie("token", token);
+      resp.status(200).send(user);
+      userInfo = user;
+      
+      // req.session.save(() => {
+      //   resp.status(200).send(user);
+      // });
+    } else {
+      resp.status(400).send("INVALID CREDENTIALS");
+    }
+  } catch (error) {
+    resp.status(400).send("Somthing is Worng");
   }
-
-  req.session.user = user;
-  req.session.save(() => {
-    resp.status(200).send({
-      user,
-      token: getJwtToken(user),
-    });
-  });
 });
 
-app.post("/logout", verifyExpressToken, async (req, resp, next) => {
+app.post("/logout", verifyToken, async (req, resp, next) => {
   userInfo = {};
-  req.session.destroy((err) => {
-    if (err) res.status(400).send("Error!");
-    resp.status(200).send("Logout Successfully...!!");
-  });
+  resp.clearCookie("token");
+  resp.status(200).send("Logout Successfully...!!");
+  // req.session.destroy((err) => {
+  //   if (err) res.status(400).send("Error!");
+  //   resp.status(200).send("Logout Successfully...!!");
+  // });
 });
 
 connectDB().then(() => {

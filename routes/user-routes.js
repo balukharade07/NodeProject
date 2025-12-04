@@ -5,7 +5,8 @@ const {
   userRegisterValidation,
   handleValidation,
 } = require("../utils/validation");
-const { verifyExpressToken } = require("../utils/jwt-token");
+const { verifyToken } = require("../utils/jwt-token");
+const bcrypt = require("bcrypt");
 
 const router = Router();
 
@@ -17,19 +18,25 @@ router.post(
     const presentUser = await Users.findOne({ email: req.body.email });
 
     if (presentUser) {
-      try {
-        throw Error("Email already present.");
-      } catch (error) {
-        return res.status(401).send({ error: "Email already present." });
-      }
+      res.status(400).send({ error: "Email already present." });
     }
-    const user = await new Users({ ...req.body, deleted: false });
-    const result1 = await user.save();
-    res.status(200).send(result1);
+    try {
+      const { username, email, password } = req.body;
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = new Users({
+        username,
+        email,
+        password: passwordHash,
+      });
+      const result = await user.save();
+      res.status(200).send('User Added Succssfully.' + result?._id);
+    } catch (error) {
+      res.status(400).send({ error: "Somthing wrong." });
+    }
   }
 );
 
-router.get("/users", verifyExpressToken, async (req, res) => {
+router.get("/users", verifyToken, async (req, res) => {
   const allUser = await Users.find({}).select("-password");
   const allQuote = await Quote.find({});
   const updatedUserList = allUser
@@ -61,26 +68,26 @@ router.get("/usersList", async (req, res) => {
   res.status(200).send(updatedUserList);
 });
 
-router.delete("/userDelete/:_id", verifyExpressToken, async (req, res) => {
-  const user = await Users.updateOne(req.params, { $set: { deleted: true } });
-  res.status(200).send("Deleted Successfully...!!");
+router.delete("/userDelete/:_id", verifyToken, async (req, res) => {
+  try {
+    await Users.findByIdAndDelete(req.params);
+    res.status(200).send("Deleted Successfully...!!");
+  } catch (error) {
+    res.status(400).send("Somthing wrong!!");
+  }
 });
 
-router.put(
+router.patch(
   "/update/:_id",
-  verifyExpressToken,
+  verifyToken,
   userRegisterValidation,
   handleValidation,
   async (req, resp) => {
-    const user = await Users.updateOne(req.params, { $set: req.body });
+    const user = await Users.findByIdAndUpdate(req.params, req.body);
     if (user) {
       resp.status(200).send("User Updated Successfully...!!");
     } else {
-      try {
-        throw Error("User not fount");
-      } catch (error) {
-        return resp.status(400).send("User not fount");
-      }
+      resp.status(400).send("User not fount");
     }
   }
 );
@@ -98,7 +105,7 @@ router.put("/resetPassword/:_id", async (req, resp) => {
   }
 });
 
-router.get("/profile/:_id", verifyExpressToken, async (req, res) => {
+router.get("/profile/:_id", verifyToken, async (req, res) => {
   const user = await Users.findOne(req.params).select("-password");
   const quote = await Quote.find({ by: req.params._id });
   const profile = {

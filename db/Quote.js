@@ -5,6 +5,7 @@ const quoitSchema = new mongoose.Schema(
     quote: {
       type: String,
       required: true,
+      trim: true,
     },
     by: {
       type: String,
