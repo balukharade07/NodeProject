@@ -47,10 +47,9 @@ app.post("/login", loginValidation, handleValidation, async (req, resp) => {
     if (passwordHash) {
       // req.session.user = user;
       const token = getJwtToken(user);
+      userInfo = user;
       resp.cookie("token", token);
       resp.status(200).send(user);
-      userInfo = user;
-      
       // req.session.save(() => {
       //   resp.status(200).send(user);
       // });
