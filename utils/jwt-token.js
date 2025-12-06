@@ -1,27 +1,43 @@
 const jwt = require("jsonwebtoken");
+const Users = require("../db/Users");
 const SECRET_KEY = "BALUKHARADE";
 
-const verifyToken = (req, res, next) => {
-  const token = req.headers["authorization"];
+const verifyToken = async (req, res, next) => {
+  try {
+    const cookies = req.cookies;
+    const { token } = cookies;
 
-  if (!token) {
-    return res.status(403).json({ error: "No token provided" });
-  }
+    if (!token) return res.status(401).json({ error: "No token provided" });
 
-  jwt.verify(token.split(" ")[1], SECRET_KEY, (err, decoded) => {
-    if (err) {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    if (!decoded)
       return res.status(401).json({ error: "Invalid or expired token" });
+    const user = await Users.findById(decoded._id);
+    if (!user) {
+      throw new Error("User is not found");
     }
-    req.user = decoded;
+    const activeUser = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      userType: user?.userType,
+    };
+    req.user = activeUser;
     next();
-  });
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid or expired token", error });
+  }
 };
 
-const getJwtToken = (user) => {
-    const token = jwt.sign({ username: user.username }, SECRET_KEY, {
-      expiresIn: "1h",
-    });
-    return token
-}
+//express-session
+const verifyExpressToken = (req, res, next) => {
+  if (!req?.session?.user) {
+    return res.status(401).json({ error: "Session expired." });
+  } else {
+    next();
+  }
+};
 
-module.exports = { verifyToken, getJwtToken }
+
+
+module.exports = { verifyToken };

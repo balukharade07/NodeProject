@@ -2,14 +2,26 @@ const { Router } = require("express");
 const Quote = require("../db/Quote");
 const Users = require("../db/Users");
 const { verifyToken } = require("../utils/jwt-token");
+const { addQuoteValidation, handleValidation } = require("../utils/validation");
+// const { verifyToken } = require("../utils/jwt-token");
 
 const router = Router();
 
-router.post("/addQuote", verifyToken, async (req, resp) => {
-  const addQuote = new Quote(req.body);
-  const res = await addQuote.save();
-  resp.status(201).send(res);
-});
+router.post(
+  "/addQuote",
+  verifyToken,
+  addQuoteValidation,
+  handleValidation,
+  async (req, resp) => {
+    try {
+      const addQuote = new Quote(req.body);
+      const res = await addQuote.save();
+      resp.status(201).send(res);
+    } catch (error) {
+      resp.status(400).send("BAD REQ.");
+    }
+  }
+);
 
 router.put("/editQuote/:_id", verifyToken, async (req, resp) => {
   const data = await Quote.findOne(req.body);
@@ -21,7 +33,7 @@ router.put("/editQuote/:_id", verifyToken, async (req, resp) => {
     }
   } else {
     const quote = await Quote.updateOne(req.params, { $set: req.body });
-    resp.send(req.body);
+    resp.status(200).send(quote);
   }
 });
 
@@ -64,20 +76,28 @@ router.get("/getAllQuote/:_id", async (req, resp) => {
       count,
       result: updatedQuote,
     };
-    resp.send(result);
+    resp.status(200).send(result);
   } catch (e) {
     console.log(e);
   }
 });
 
 router.get("/getQuote/:by", verifyToken, async (req, resp) => {
-  const addQuote = await Quote.find(req.params);
-  resp.send(addQuote);
+  try {
+    const addQuote = await Quote.find(req.params);
+    resp.status(200).send(addQuote);
+  } catch (error) {
+    resp.status(400).send("BAD REQ.");
+  }
 });
 
 router.delete("/delete/:_id", verifyToken, async (req, resp) => {
-  const addQuote = await Quote.deleteOne(req.params);
-  resp.send(addQuote);
+  try {
+    const addQuote = await Quote.deleteOne(req.params);
+    resp.status(200).send(addQuote);
+  } catch (error) {
+    resp.status(400).send("BAD REQ.");
+  }
 });
 
 module.exports = { quoteRouter: router };
