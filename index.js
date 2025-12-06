@@ -1,13 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const Users = require("./db/Users");
-const { verifyToken, getJwtToken } = require("./utils/jwt-token");
+const { verifyToken } = require("./utils/jwt-token");
 const { mainRoute } = require("./routes");
 const session = require("express-session");
 require("dotenv").config();
 const connectDB = require("./db/config");
 const { loginValidation, handleValidation } = require("./utils/validation");
-const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -33,7 +32,7 @@ app.use(
 app.use(mainRoute);
 
 app.get("/isLoggendIn", verifyToken, (req, resp, next) => {
-  resp.send(userInfo);
+  resp.send(req.user);
 });
 
 app.post("/login", loginValidation, handleValidation, async (req, resp) => {
@@ -43,12 +42,15 @@ app.post("/login", loginValidation, handleValidation, async (req, resp) => {
     if (!user || user.deleted) {
       return resp.status(400).send("INVALID CREDENTIALS");
     }
-    const passwordHash = await bcrypt.compare(password, user.password);
+    const passwordHash = await user.validatePassword(password);
     if (passwordHash) {
       // req.session.user = user;
-      const token = getJwtToken(user);
+      const token = user.getJWT(user);
       userInfo = user;
-      resp.cookie("token", token);
+      resp.cookie("token", token, {
+        httpOnly: true,
+        expires: new Date(Date.now() + 1 * 3600000),
+      });
       resp.status(200).send(user);
       // req.session.save(() => {
       //   resp.status(200).send(user);
