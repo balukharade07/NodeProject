@@ -18,9 +18,11 @@ const verifyToken = async (req, res, next) => {
     }
     const activeUser = {
       _id: user._id,
-      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
-      userType: user?.userType,
+      age: user.age,
+      gender: user.gender,
     };
     req.user = activeUser;
     next();
@@ -37,7 +39,5 @@ const verifyExpressToken = (req, res, next) => {
     next();
   }
 };
-
-
 
 module.exports = { verifyToken };

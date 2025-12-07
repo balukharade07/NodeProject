@@ -1,21 +1,53 @@
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const validator = require("validator");
 
 const SECRET_KEY = "BALUKHARADE";
 
 const userSchema = new mongoose.Schema(
   {
-    username: {
+    firstName: {
       type: String,
       required: true,
       trim: true,
+      validator(value) {
+        if (validator.isEmpty(value)) {
+          throw new Error("firstName is requierd.");
+        }
+      },
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+      validator(value) {
+        if (validator.isEmpty(value)) {
+          throw new Error("lastName is requierd.");
+        }
+      },
+    },
+    gender: {
+      type: String,
+      enum: {
+        values: ["MALE", "FEMALE", "OTHER"],
+        message: `{VALUE} is not gender type`,
+      },
+      required: true,
     },
     email: {
       type: String,
       required: true,
       trim: true,
       unique: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Invalid email address" + value);
+        }
+        if (validator.isEmpty(value)) {
+          throw new Error("email is requierd.");
+        }
+      },
     },
     password: {
       type: String,
@@ -23,18 +55,17 @@ const userSchema = new mongoose.Schema(
       trim: true,
       min: 5,
     },
-    userType: {
-      type: String,
-      validate(value) {
-        if (!["Admin", "User"].includes(value)) {
-          throw new Error("user type is invalid.");
-        }
-      },
+    age: {
+      type: Number,
+      required: true,
+      min: [18, "User must be {value} +"],
+      max: 90,
     },
-    deleted: Boolean,
   },
   { timestamps: true }
 );
+
+userSchema.index({ firstName: 1, lastName: 1 });
 
 userSchema.methods.getJWT = function () {
   const user = this;
@@ -49,4 +80,4 @@ userSchema.methods.validatePassword = async function (password) {
   return await bcrypt.compare(password, user.password);
 };
 
-module.exports = mongoose.model("Users", userSchema);
+module.exports = new mongoose.model("Users", userSchema);

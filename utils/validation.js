@@ -8,10 +8,15 @@ const userRegisterValidation = [
     .withMessage("Email is requierd")
     .isString()
     .withMessage("Email must be a string."),
-  body("username")
+  body("firstName")
     .notEmpty()
     .withMessage("Name is requierd.")
     .isLength({ min: 3, max: 32 }),
+  body("lastName")
+    .notEmpty()
+    .withMessage("Last Name is requierd.")
+    .isLength({ min: 3, max: 32 }),
+  body("age").notEmpty().withMessage("Age is requierd."),
   body("password").notEmpty().withMessage("Password is requierd."),
 ];
 
@@ -44,4 +49,21 @@ const handleValidation = (req, resp, next) => {
   }
 };
 
-module.exports = { userRegisterValidation, addQuoteValidation, loginValidation, handleValidation };
+const handleUpdatedUserCalidation = (req, res, next) => {
+  const allowedFields = ["fistName", "lastName", "email", "age", "gender"];
+  const isValidData = Object.keys(req.body || {})?.every((item) =>
+    allowedFields.includes(item)
+  );
+
+  if (!isValidData) return res.status(400).send("invalid json.");
+
+  next();
+};
+
+module.exports = {
+  userRegisterValidation,
+  addQuoteValidation,
+  loginValidation,
+  handleValidation,
+  handleUpdatedUserCalidation,
+};
