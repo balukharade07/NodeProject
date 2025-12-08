@@ -6,6 +6,7 @@ const {
   handleUpdatedUserCalidation,
 } = require("../utils/validation");
 const { verifyToken } = require("../utils/jwt-token");
+const Connection = require("../db/Connection");
 
 const userRouter = Router();
 
@@ -144,6 +145,119 @@ userRouter.post("/usersList/:lastName", async (req, res) => {
     res.status(200).send(result?.[0]);
   } catch (error) {
     res.status(400).send("Invalid name" + req.params.lastName);
+  }
+});
+
+userRouter.post("/user/requests/received", verifyToken, async (req, res) => {
+  try {
+    const logggedInUser = req.user;
+
+    const isConnectionExisting = await Connection.find({
+      toUserId: logggedInUser._id,
+      status: "interested",
+    }).populate("fromUserId", ["firstName", "lastName"]);
+
+    res.status(200).json({
+      data: isConnectionExisting,
+      message: "Connection requests send successfully!!",
+    });
+  } catch (error) {
+    res.status(400).send("ERROR :" + error.message);
+  }
+});
+
+userRouter.post("/user/connections", verifyToken, async (req, res) => {
+  try {
+    const logggedInUser = req.user;
+
+    const isConnectionExisting = await Connection.find({
+      $or: [
+        { toUserId: logggedInUser._id, status: "accepeted" },
+        { fromUserId: logggedInUser._id, status: "accepeted" },
+      ],
+    })
+      .populate("fromUserId", ["firstName", "lastName"])
+      .populate("toUserId", ["firstName", "lastName"]);
+
+    res.status(200).json({
+      data: isConnectionExisting.map((item) => {
+        if (item.fromUserId._id.toString() === logggedInUser._id.toString()) {
+          return item.toUserId;
+        }
+
+        return item.fromUserId;
+      }),
+      message: "Connection requests send successfully!!",
+    });
+  } catch (error) {
+    res.status(400).send("ERROR :" + error.message);
+  }
+});
+
+userRouter.post("/feed", verifyToken, async (req, res) => {
+  try {
+    const loggedInUser = req.user;
+    const page = parseInt(req.query?.page) || 1;
+    const limit = parseInt(req.query?.limit) || 10;
+    const skip = (page - 1) * limit;
+    const isAlreadyConnectionExists = await Connection.find({
+      $or: [
+        {
+          toUserId: loggedInUser._id,
+        },
+        {
+          fromUserId: loggedInUser._id,
+        },
+      ],
+    });
+
+    // const hideUserIds = new Set([]);
+    // isAlreadyConnectionExists.forEach((item) => {
+    //   hideUserIds.add(item.toUserId.toString());
+    //   hideUserIds.add(item.fromUserId.toString());
+    // });
+    // console.log("hideUserIds", hideUserIds);
+
+    // const allUsers = await Users.find({
+    //   $and: [
+    //     { _id: { $nin: Array.from(hideUserIds) } },
+    //     { _id: { $ne: loggedInUser._id } },
+    //   ],
+    // }).select("firstName lastName gender age");
+
+    const hideUserIds = [];
+
+    isAlreadyConnectionExists.forEach((item) => {
+      hideUserIds.push(...[item.toUserId, item.fromUserId]);
+    });
+
+    const allUsers = await Users.aggregate([
+      {
+        $match: {
+          _id: { $nin: [loggedInUser._id, ...hideUserIds] },
+        },
+      },
+      { $sort: { createdAt: 1 } },
+      {
+        $project: { password: 0, createdAt: 0, updatedAt: 0, __v: 0 },
+      },
+      {
+        $facet: {
+          result: [{ $skip: skip }, { $limit: limit }],
+          count: [{ $count: "count" }],
+        },
+      },
+      {
+        $project: {
+          result: 1,
+          count: { $arrayElemAt: ["$count.count", 0] },
+        },
+      },
+    ]);
+
+    res.status(200).send(allUsers);
+  } catch (error) {
+    res.status(400).send("Connections not found!!");
   }
 });
 
