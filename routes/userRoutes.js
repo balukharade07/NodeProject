@@ -1,17 +1,17 @@
-const { Router } = require("express");
-const Users = require("../db/Users");
+const { Router } = require('express');
+const Users = require('../db/Users');
 const {
   userRegisterValidation,
   handleValidation,
   handleUpdatedUserCalidation,
-} = require("../utils/validation");
-const { verifyToken } = require("../utils/jwt-token");
-const Connection = require("../db/Connection");
+} = require('../utils/validation');
+const { verifyToken } = require('../utils/jwt-token');
+const Connection = require('../db/Connection');
 
 const userRouter = Router();
 
-userRouter.get("/users", verifyToken, async (req, res) => {
-  const allUser = await Users.find({}).select("-password");
+userRouter.get('/users', verifyToken, async (req, res) => {
+  const allUser = await Users.find({}).select('-password');
   const updatedUserList = allUser.map((item) => {
     const user = {
       email: item.email,
@@ -24,8 +24,8 @@ userRouter.get("/users", verifyToken, async (req, res) => {
   res.status(200).send(updatedUserList);
 });
 
-userRouter.get("/usersList", async (req, res) => {
-  const allUser = await Users.find({}).select("-password");
+userRouter.get('/usersList', async (req, res) => {
+  const allUser = await Users.find({}).select('-password');
   const updatedUserList = allUser.map((item) => {
     const user = {
       firstName: item.firstName,
@@ -36,12 +36,12 @@ userRouter.get("/usersList", async (req, res) => {
   res.status(200).send(updatedUserList);
 });
 
-userRouter.delete("/userDelete/:_id", verifyToken, async (req, res) => {
+userRouter.delete('/userDelete/:_id', verifyToken, async (req, res) => {
   try {
     await Users.findByIdAndDelete(req.params);
-    res.status(200).send("Deleted Successfully...!!");
+    res.status(200).send('Deleted Successfully...!!');
   } catch (error) {
-    res.status(400).send("Somthing wrong!!");
+    res.status(400).send('Somthing wrong!!');
   }
 });
 
@@ -51,30 +51,46 @@ userRouter.patch(
   handleUpdatedUserCalidation,
   async (req, res) => {
     try {
-      const user = await Users.findByIdAndUpdate(req.params, req.body);
-      if (!user) throw new Error("Invalid user");
-      const loggedInUser = req.user;
-      Object.keys(req.body).forEach(
-        (key) => (loggedInUser[key] = req.body[key])
-      );
-      loggedInUser.save();
-      res.status(200).send("User Updated Successfully...!!");
+      const loggedInUserId = req.params?._id;
+
+      const updatedUser = await Users.findByIdAndUpdate(
+        loggedInUserId,
+        { $set: req.body },
+        {
+          new: true,
+          runValidators: true,
+        },
+      ).select('-password');
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          message: 'User not found',
+        });
+      }
+
+      return res.status(200).json({
+        message: 'User updated successfully',
+        user: updatedUser,
+      });
     } catch (error) {
-      res.status(400).send("User not fount");
+      console.error(error);
+      return res.status(400).json({
+        message: error.message || 'Failed to update user',
+      });
     }
-  }
+  },
 );
 
-userRouter.get("/user/:_id", verifyToken, async (req, res) => {
+userRouter.get('/user/:_id', verifyToken, async (req, res) => {
   try {
-    const user = await Users.findOne(req.params).select("-password");
+    const user = await Users.findOne(req.params).select('-password');
     res.status(200).send(user);
   } catch (error) {
-    res.status(400).send("User not fount");
+    res.status(400).send('User not fount');
   }
 });
 
-userRouter.post("/usersList/:lastName", async (req, res) => {
+userRouter.post('/usersList/:lastName', async (req, res) => {
   try {
     const result = await Users.aggregate([
       {
@@ -83,7 +99,7 @@ userRouter.post("/usersList/:lastName", async (req, res) => {
       },
       {
         $addFields: {
-          fullName: { $concat: ["$firstName", " ", "$lastName"] },
+          fullName: { $concat: ['$firstName', ' ', '$lastName'] },
         },
       },
       {
@@ -92,12 +108,12 @@ userRouter.post("/usersList/:lastName", async (req, res) => {
       { $sort: { age: 1 } },
       {
         $lookup: {
-          from: "connectionrequests",
-          let: { userId: "$_id" }, // store user._id as variable
+          from: 'connectionrequests',
+          let: { userId: '$_id' }, // store user._id as variable
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$fromUserId", "$$userId"] },
+                $expr: { $eq: ['$fromUserId', '$$userId'] },
               },
             },
             {
@@ -108,7 +124,7 @@ userRouter.post("/usersList/:lastName", async (req, res) => {
               },
             },
           ],
-          as: "connectionRequests",
+          as: 'connectionRequests',
         },
       },
       // {
@@ -121,9 +137,9 @@ userRouter.post("/usersList/:lastName", async (req, res) => {
       // },
       {
         $group: {
-          _id: "$lastName",
+          _id: '$lastName',
           users: {
-            $push: "$$ROOT",
+            $push: '$$ROOT',
           },
           count: { $sum: 1 },
         },
@@ -131,53 +147,53 @@ userRouter.post("/usersList/:lastName", async (req, res) => {
       {
         $facet: {
           result: [{ $skip: 0 }, { $limit: 10 }],
-          count: [{ $count: "count" }],
+          count: [{ $count: 'count' }],
         },
       },
       {
         $project: {
           result: 1,
-          count: { $arrayElemAt: ["$count.count", 0] },
+          count: { $arrayElemAt: ['$count.count', 0] },
         },
       },
     ]);
 
     res.status(200).send(result?.[0]);
   } catch (error) {
-    res.status(400).send("Invalid name" + req.params.lastName);
+    res.status(400).send('Invalid name' + req.params.lastName);
   }
 });
 
-userRouter.post("/user/requests/received", verifyToken, async (req, res) => {
+userRouter.post('/user/requests/received', verifyToken, async (req, res) => {
   try {
     const logggedInUser = req.user;
 
     const isConnectionExisting = await Connection.find({
       toUserId: logggedInUser._id,
-      status: "interested",
-    }).populate("fromUserId", ["firstName", "lastName"]);
+      status: 'interested',
+    }).populate('fromUserId', ['firstName', 'lastName']);
 
     res.status(200).json({
       data: isConnectionExisting,
-      message: "Connection requests send successfully!!",
+      message: 'Connection requests send successfully!!',
     });
   } catch (error) {
-    res.status(400).send("ERROR :" + error.message);
+    res.status(400).send('ERROR :' + error.message);
   }
 });
 
-userRouter.post("/user/connections", verifyToken, async (req, res) => {
+userRouter.post('/user/connections', verifyToken, async (req, res) => {
   try {
     const logggedInUser = req.user;
 
     const isConnectionExisting = await Connection.find({
       $or: [
-        { toUserId: logggedInUser._id, status: "accepeted" },
-        { fromUserId: logggedInUser._id, status: "accepeted" },
+        { toUserId: logggedInUser._id, status: 'accepeted' },
+        { fromUserId: logggedInUser._id, status: 'accepeted' },
       ],
     })
-      .populate("fromUserId", ["firstName", "lastName"])
-      .populate("toUserId", ["firstName", "lastName"]);
+      .populate('fromUserId', ['firstName', 'lastName'])
+      .populate('toUserId', ['firstName', 'lastName']);
 
     res.status(200).json({
       data: isConnectionExisting.map((item) => {
@@ -187,14 +203,14 @@ userRouter.post("/user/connections", verifyToken, async (req, res) => {
 
         return item.fromUserId;
       }),
-      message: "Connection requests send successfully!!",
+      message: 'Connection requests send successfully!!',
     });
   } catch (error) {
-    res.status(400).send("ERROR :" + error.message);
+    res.status(400).send('ERROR :' + error.message);
   }
 });
 
-userRouter.post("/feed", verifyToken, async (req, res) => {
+userRouter.post('/feed', verifyToken, async (req, res) => {
   try {
     const loggedInUser = req.user;
     const page = parseInt(req.query?.page) || 1;
@@ -242,22 +258,27 @@ userRouter.post("/feed", verifyToken, async (req, res) => {
         $project: { password: 0, createdAt: 0, updatedAt: 0, __v: 0 },
       },
       {
+        $addFields: {
+          fullName: { $concat: ['$firstName', ' ', '$lastName'] },
+        },
+      },
+      {
         $facet: {
           result: [{ $skip: skip }, { $limit: limit }],
-          count: [{ $count: "count" }],
+          count: [{ $count: 'count' }],
         },
       },
       {
         $project: {
           result: 1,
-          count: { $arrayElemAt: ["$count.count", 0] },
+          count: { $arrayElemAt: ['$count.count', 0] },
         },
       },
     ]);
 
-    res.status(200).send(allUsers);
+    res.status(200).send(allUsers[0]);
   } catch (error) {
-    res.status(400).send("Connections not found!!");
+    res.status(400).send('Connections not found!!');
   }
 });
 

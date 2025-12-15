@@ -50,7 +50,7 @@ const handleValidation = (req, resp, next) => {
 };
 
 const handleUpdatedUserCalidation = (req, res, next) => {
-  const allowedFields = ["fistName", "lastName", "email", "age", "gender"];
+  const allowedFields = ["firstName", "lastName", "email", "age", "gender"];
   const isValidData = Object.keys(req.body || {})?.every((item) =>
     allowedFields.includes(item)
   );
