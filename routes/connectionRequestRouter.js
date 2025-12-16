@@ -34,7 +34,6 @@ connectionRequestRouter.post(
         ],
       });
 
-      console.log("isConnectionExisting", isConnectionExisting);
 
       if (isConnectionExisting) {
         return res.status(400).json({

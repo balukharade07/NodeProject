@@ -46,7 +46,7 @@ userRouter.delete('/userDelete/:_id', verifyToken, async (req, res) => {
 });
 
 userRouter.patch(
-  "/user/:_id",
+  '/user/:_id',
   verifyToken,
   handleUpdatedUserCalidation,
   async (req, res) => {
@@ -171,7 +171,13 @@ userRouter.post('/user/requests/received', verifyToken, async (req, res) => {
     const isConnectionExisting = await Connection.find({
       toUserId: logggedInUser._id,
       status: 'interested',
-    }).populate('fromUserId', ['firstName', 'lastName']);
+    }).populate('fromUserId', [
+      'firstName',
+      'lastName',
+      'age',
+      'gender',
+      'email',
+    ]);
 
     res.status(200).json({
       data: isConnectionExisting,
@@ -192,8 +198,20 @@ userRouter.post('/user/connections', verifyToken, async (req, res) => {
         { fromUserId: logggedInUser._id, status: 'accepeted' },
       ],
     })
-      .populate('fromUserId', ['firstName', 'lastName'])
-      .populate('toUserId', ['firstName', 'lastName']);
+      .populate('fromUserId', [
+        'firstName',
+        'lastName',
+        'age',
+        'gender',
+        'email',
+      ])
+      .populate('toUserId', [
+        'firstName',
+        'lastName',
+        'age',
+        'gender',
+        'email',
+      ]);
 
     res.status(200).json({
       data: isConnectionExisting.map((item) => {

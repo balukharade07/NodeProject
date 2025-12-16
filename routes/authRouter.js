@@ -10,8 +10,9 @@ const { getLoggedInUser } = require('../utils/jwt-token');
 
 const authRouter = Router();
 
-authRouter.get('/isLoggendIn', getLoggedInUser, (req, resp, next) => {
-  resp.send(req.user);
+authRouter.get('/isLoggendIn', getLoggedInUser, (req, res, next) => {
+  if(!req.user)  return res.status(400).send({ error: 'User not loggend-in.' });
+  res.send(req.user);
 });
 
 authRouter.post(
@@ -38,7 +39,7 @@ authRouter.post(
       });
       const result = await user.save();
       handleUserAuth(res, user);
-      res.status(200).send('User Added Succssfully.' + result?._id);
+      res.status(200).send(result);
     } catch (error) {
       res.status(400).send({ error: 'Somthing wrong.' });
     }
